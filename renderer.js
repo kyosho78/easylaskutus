@@ -1,0 +1,393 @@
+const { ipcRenderer } = require("electron");
+
+// =========================
+// ELEMENTIT
+// =========================
+const customersSection = document.getElementById("customersSection");
+const newInvoiceSection = document.getElementById("newInvoiceSection");
+const invoicesSection = document.getElementById("invoicesSection");
+
+const showCustomersBtn = document.getElementById("showCustomers");
+const showNewInvoiceBtn = document.getElementById("showNewInvoice");
+const showInvoicesBtn = document.getElementById("showInvoices");
+
+const customerForm = document.getElementById("customerForm");
+const customerList = document.getElementById("customerList");
+const customerMessage = document.getElementById("customerMessage");
+
+const invoiceForm = document.getElementById("invoiceForm");
+const invoiceCustomer = document.getElementById("invoiceCustomer");
+const invoiceRows = document.getElementById("invoiceRows");
+const addRowBtn = document.getElementById("addRowBtn");
+const invoiceTotal = document.getElementById("invoiceTotal");
+const invoiceMessage = document.getElementById("invoiceMessage");
+const invoiceList = document.getElementById("invoiceList");
+
+const settingsSection = document.getElementById("settingsSection");
+const showSettingsBtn = document.getElementById("showSettings");
+
+const settingsForm = document.getElementById("settingsForm");
+const settingsMessage = document.getElementById("settingsMessage");
+
+// =========================
+// NÄKYMIEN VAIHTO
+// =========================
+function showSection(sectionToShow) {
+  customersSection.classList.add("hidden");
+  newInvoiceSection.classList.add("hidden");
+  invoicesSection.classList.add("hidden");
+  settingsSection.classList.add("hidden");
+
+  sectionToShow.classList.remove("hidden");
+}
+
+showCustomersBtn.addEventListener("click", () => showSection(customersSection));
+showNewInvoiceBtn.addEventListener("click", () => showSection(newInvoiceSection));
+showInvoicesBtn.addEventListener("click", async () => {
+  showSection(invoicesSection);
+  await loadInvoices();
+});
+
+showSettingsBtn.addEventListener("click", async () => {
+  showSection(settingsSection);
+  await loadSettings();
+});
+
+// =========================
+// ASIAKKAAT
+// =========================
+async function loadCustomers() {
+  try {
+    const customers = await ipcRenderer.invoke("get-customers");
+
+    if (customers.length === 0) {
+      customerList.innerHTML = "<p>Ei asiakkaita vielä.</p>";
+      invoiceCustomer.innerHTML = `<option value="">Valitse asiakas</option>`;
+      return;
+    }
+
+    customerList.innerHTML = customers
+      .map(
+        (customer) => `
+          <div class="customer-card">
+            <h3>${customer.name}</h3>
+            <p><strong>Y-tunnus:</strong> ${customer.businessId || "-"}</p>
+            <p><strong>Osoite:</strong> ${customer.address || "-"}, ${customer.postalCode || ""} ${customer.city || ""}</p>
+            <p><strong>Sähköposti:</strong> ${customer.email || "-"}</p>
+            <p><strong>Puhelin:</strong> ${customer.phone || "-"}</p>
+          </div>
+        `
+      )
+      .join("");
+
+    invoiceCustomer.innerHTML = `
+      <option value="">Valitse asiakas</option>
+      ${customers
+        .map((customer) => `<option value="${customer.id}">${customer.name}</option>`)
+        .join("")}
+    `;
+  } catch (error) {
+    customerList.innerHTML = `<p>Virhe asiakkaiden haussa: ${error}</p>`;
+  }
+}
+
+customerForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const customer = {
+    name: document.getElementById("name").value,
+    businessId: document.getElementById("businessId").value,
+    address: document.getElementById("address").value,
+    postalCode: document.getElementById("postalCode").value,
+    city: document.getElementById("city").value,
+    email: document.getElementById("email").value,
+    phone: document.getElementById("phone").value
+  };
+
+  try {
+    const result = await ipcRenderer.invoke("add-customer", customer);
+    customerMessage.textContent = result.message;
+    customerForm.reset();
+    await loadCustomers();
+  } catch (error) {
+    customerMessage.textContent = "Virhe asiakkaan tallennuksessa: " + error;
+  }
+});
+
+// =========================
+// LASKURIVIT
+// =========================
+function createRowHtml() {
+  const row = document.createElement("div");
+  row.className = "invoice-row";
+
+  row.innerHTML = `
+    <input type="text" class="row-description" placeholder="Kuvaus" />
+    <input type="number" class="row-quantity" placeholder="Määrä" value="1" min="0" step="0.01" />
+    <input type="text" class="row-unit" placeholder="Yksikkö" value="kpl" />
+    <input type="number" class="row-price" placeholder="Hinta" value="0" min="0" step="0.01" />
+    <input type="number" class="row-vat" placeholder="ALV %" value="25.5" min="0" step="0.1" />
+    <input type="text" class="row-total" placeholder="Rivisumma" readonly />
+    <button type="button" class="remove-row-btn">Poista</button>
+  `;
+
+  const quantityInput = row.querySelector(".row-quantity");
+  const priceInput = row.querySelector(".row-price");
+  const vatInput = row.querySelector(".row-vat");
+  const rowTotalInput = row.querySelector(".row-total");
+  const removeBtn = row.querySelector(".remove-row-btn");
+
+  function updateRowTotal() {
+    const quantity = parseFloat(quantityInput.value) || 0;
+    const price = parseFloat(priceInput.value) || 0;
+    const vat = parseFloat(vatInput.value) || 0;
+
+    const total = quantity * price * (1 + vat / 100);
+    rowTotalInput.value = total.toFixed(2) + " €";
+
+    updateInvoiceTotal();
+  }
+
+  quantityInput.addEventListener("input", updateRowTotal);
+  priceInput.addEventListener("input", updateRowTotal);
+  vatInput.addEventListener("input", updateRowTotal);
+
+  removeBtn.addEventListener("click", () => {
+    row.remove();
+    updateInvoiceTotal();
+  });
+
+  updateRowTotal();
+
+  return row;
+}
+
+function addInvoiceRow() {
+  invoiceRows.appendChild(createRowHtml());
+}
+
+function getInvoiceRowsData() {
+  const rows = [];
+  const rowElements = document.querySelectorAll(".invoice-row");
+
+  rowElements.forEach((row) => {
+    const description = row.querySelector(".row-description").value;
+    const quantity = parseFloat(row.querySelector(".row-quantity").value) || 0;
+    const unit = row.querySelector(".row-unit").value;
+    const price = parseFloat(row.querySelector(".row-price").value) || 0;
+    const vat = parseFloat(row.querySelector(".row-vat").value) || 0;
+    const rowTotal = quantity * price * (1 + vat / 100);
+
+    if (description.trim() !== "") {
+      rows.push({
+        description,
+        quantity,
+        unit,
+        price,
+        vat,
+        rowTotal: parseFloat(rowTotal.toFixed(2))
+      });
+    }
+  });
+
+  return rows;
+}
+
+function updateInvoiceTotal() {
+  const rows = getInvoiceRowsData();
+  const total = rows.reduce((sum, row) => sum + row.rowTotal, 0);
+  invoiceTotal.textContent = total.toFixed(2) + " €";
+}
+
+addRowBtn.addEventListener("click", addInvoiceRow);
+
+// =========================
+// LASKUN TALLENNUS
+// =========================
+function generateReferenceNumber(baseNumber) {
+  const digitsOnly = String(baseNumber).replace(/\D/g, "");
+
+  if (!digitsOnly) return "";
+
+  const multipliers = [7, 3, 1];
+  let sum = 0;
+  let multiplierIndex = 0;
+
+  for (let i = digitsOnly.length - 1; i >= 0; i--) {
+    sum += parseInt(digitsOnly[i], 10) * multipliers[multiplierIndex];
+    multiplierIndex = (multiplierIndex + 1) % 3;
+  }
+
+  const checkDigit = (10 - (sum % 10)) % 10;
+  return digitsOnly + checkDigit;
+}
+
+const invoiceNumberInput = document.getElementById("invoiceNumber");
+const referenceNumberInput = document.getElementById("referenceNumber");
+
+invoiceNumberInput.addEventListener("input", () => {
+  const invoiceNumber = invoiceNumberInput.value;
+  const generatedReference = generateReferenceNumber(invoiceNumber);
+  referenceNumberInput.value = generatedReference;
+});
+
+
+invoiceForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const rows = getInvoiceRowsData();
+
+  if (rows.length === 0) {
+    invoiceMessage.textContent = "Lisää vähintään yksi laskurivi.";
+    return;
+  }
+
+    const total = rows.reduce((sum, row) => sum + row.rowTotal, 0);
+
+    const invoiceNumberValue = document.getElementById("invoiceNumber").value;
+    const autoReferenceNumber = generateReferenceNumber(invoiceNumberValue);
+
+    const invoiceData = {
+        customerId: parseInt(invoiceCustomer.value),
+        invoiceNumber: invoiceNumberValue,
+        date: document.getElementById("invoiceDate").value,
+        dueDate: document.getElementById("invoiceDueDate").value,
+        referenceNumber: autoReferenceNumber,
+        total: parseFloat(total.toFixed(2)),
+        rows
+    };
+
+    try {
+    const result = await ipcRenderer.invoke("save-invoice", invoiceData);
+    invoiceMessage.textContent = result.message;
+
+    invoiceForm.reset();
+    invoiceRows.innerHTML = "";
+    addInvoiceRow();
+    updateInvoiceTotal();
+
+    // asetetaan päiväys uudelleen
+    setDefaultDates();
+
+    await loadInvoices();
+  } catch (error) {
+    invoiceMessage.textContent = "Virhe laskun tallennuksessa: " + error;
+  }
+});
+
+// =========================
+// LASKULISTA
+// =========================
+async function loadInvoices() {
+  try {
+    const invoices = await ipcRenderer.invoke("get-invoices");
+
+    if (invoices.length === 0) {
+      invoiceList.innerHTML = "<p>Ei laskuja vielä.</p>";
+      return;
+    }
+
+    invoiceList.innerHTML = invoices
+      .map(
+        (invoice) => `
+          <div class="invoice-card">
+            <h3>Lasku ${invoice.invoiceNumber}</h3>
+            <p><strong>Asiakas:</strong> ${invoice.customerName || "-"}</p>
+            <p><strong>Päiväys:</strong> ${invoice.date}</p>
+            <p><strong>Eräpäivä:</strong> ${invoice.dueDate}</p>
+            <p><strong>Viite:</strong> ${invoice.referenceNumber || "-"}</p>
+            <p><strong>Summa:</strong> ${Number(invoice.total).toFixed(2)} €</p>
+            <p><strong>Tila:</strong> ${invoice.status}</p>
+            <button class="pdf-btn" data-id="${invoice.id}">Luo PDF</button>
+          </div>
+        `
+      )
+      .join("");
+
+    document.querySelectorAll(".pdf-btn").forEach((button) => {
+      button.addEventListener("click", async () => {
+        const invoiceId = parseInt(button.dataset.id);
+
+        try {
+          const result = await ipcRenderer.invoke("generate-invoice-pdf", invoiceId);
+          alert(result);
+        } catch (error) {
+          alert("Virhe PDF:n luonnissa: " + error);
+        }
+      });
+    });
+
+  } catch (error) {
+    invoiceList.innerHTML = `<p>Virhe laskujen haussa: ${error}</p>`;
+  }
+}
+
+async function loadSettings() {
+  try {
+    const settings = await ipcRenderer.invoke("get-settings");
+
+    document.getElementById("companyName").value = settings.companyName || "";
+    document.getElementById("settingsBusinessId").value = settings.businessId || "";
+    document.getElementById("settingsAddress").value = settings.address || "";
+    document.getElementById("settingsPostalCode").value = settings.postalCode || "";
+    document.getElementById("settingsCity").value = settings.city || "";
+    document.getElementById("settingsEmail").value = settings.email || "";
+    document.getElementById("settingsPhone").value = settings.phone || "";
+    document.getElementById("settingsWebsite").value = settings.website || "";
+    document.getElementById("settingsIban").value = settings.iban || "";
+    document.getElementById("settingsBic").value = settings.bic || "";
+  } catch (error) {
+    settingsMessage.textContent = "Virhe asetusten haussa: " + error;
+  }
+}
+
+settingsForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const settings = {
+    companyName: document.getElementById("companyName").value,
+    businessId: document.getElementById("settingsBusinessId").value,
+    address: document.getElementById("settingsAddress").value,
+    postalCode: document.getElementById("settingsPostalCode").value,
+    city: document.getElementById("settingsCity").value,
+    email: document.getElementById("settingsEmail").value,
+    phone: document.getElementById("settingsPhone").value,
+    website: document.getElementById("settingsWebsite").value,
+    iban: document.getElementById("settingsIban").value,
+    bic: document.getElementById("settingsBic").value
+  };
+
+  try {
+    const result = await ipcRenderer.invoke("save-settings", settings);
+    settingsMessage.textContent = result.message;
+  } catch (error) {
+    settingsMessage.textContent = "Virhe asetusten tallennuksessa: " + error;
+  }
+});
+
+// =========================
+// OLETUSPÄIVÄMÄÄRÄT
+// =========================
+function setDefaultDates() {
+  const today = new Date();
+  const due = new Date();
+  due.setDate(today.getDate() + 14);
+
+  document.getElementById("invoiceDate").value = today.toISOString().split("T")[0];
+  document.getElementById("invoiceDueDate").value = due.toISOString().split("T")[0];
+}
+
+// =========================
+// ALUSTUS
+// =========================
+async function init() {
+  setDefaultDates();
+  addInvoiceRow();
+  await loadCustomers();
+  await loadInvoices();
+  await loadSettings();
+
+  referenceNumberInput.value = generateReferenceNumber(invoiceNumberInput.value);
+}
+
+init();

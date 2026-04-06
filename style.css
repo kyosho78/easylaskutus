@@ -1,0 +1,177 @@
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f4f6f8;
+}
+
+.app {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: 240px;
+  background: #0d5f8f;
+  color: white;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.sidebar h2 {
+  margin-top: 0;
+}
+
+.sidebar button {
+  display: block;
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  background: white;
+  color: #0d5f8f;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.sidebar button:hover {
+  background: #dbeafe;
+}
+
+.content {
+  flex: 1;
+  padding: 30px;
+  box-sizing: border-box;
+}
+
+.form-section,
+.list-section {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+form {
+  display: grid;
+  gap: 12px;
+  max-width: 900px;
+}
+
+input,
+select {
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+form button,
+#addRowBtn,
+#saveInvoiceBtn {
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  background: #0d5f8f;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
+.remove-row-btn {
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  background: #0d5f8f;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+form button:hover,
+#addRowBtn:hover,
+#saveInvoiceBtn:hover,
+
+.remove-row-btn:hover {
+  background: #09486c;
+}
+
+#customerMessage,
+#invoiceMessage {
+  margin-top: 10px;
+  font-weight: bold;
+  color: green;
+}
+
+.customer-card,
+.invoice-card {
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 15px;
+  margin-bottom: 12px;
+  background: #fafafa;
+}
+
+.hidden {
+  display: none;
+}
+
+.invoice-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr auto;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.total-box {
+  margin-top: 10px;
+  padding: 15px;
+  background: #eef6fb;
+  border-radius: 10px;
+  font-size: 18px;
+}
+
+.pdf-btn {
+  margin-top: 10px;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 8px;
+  background: #198754;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.pdf-btn:hover {
+  background: #146c43;
+}
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field-group label {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 14px;
+}
+
+.invoice-row-header {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr auto;
+  gap: 10px;
+  margin-bottom: 10px;
+  font-weight: bold;
+  color: #1f2937;
+  padding: 0 4px;
+}
+
+
+
+
+
+
+
