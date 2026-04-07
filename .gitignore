@@ -3,8 +3,4 @@ dist/
 out/
 *.log
 .env
-<<<<<<< HEAD
 *.db
-=======
-.db
->>>>>>> 6138e1d6624f57aa84ef12765bcea5e11e3e4a8e
