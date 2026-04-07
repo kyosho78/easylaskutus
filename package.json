@@ -1,0 +1,21 @@
+{
+  "name": "easylaskutus",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "electron": "^41.1.1"
+  },
+  "dependencies": {
+    "bwip-js": "^4.9.0",
+    "pdfkit": "^0.18.0",
+    "sqlite3": "^6.0.1"
+  }
+}
