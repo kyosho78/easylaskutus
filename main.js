@@ -116,6 +116,43 @@ ipcMain.handle("get-customers", async () => {
   });
 });
 
+ipcMain.handle("update-customer", async (event, customer) => {
+  return new Promise((resolve, reject) => {
+    const sql = `
+      UPDATE customers
+      SET name = ?,
+          businessId = ?,
+          address = ?,
+          postalCode = ?,
+          city = ?,
+          email = ?,
+          phone = ?
+      WHERE id = ?
+    `;
+
+    db.run(
+      sql,
+      [
+        customer.name,
+        customer.businessId,
+        customer.address,
+        customer.postalCode,
+        customer.city,
+        customer.email,
+        customer.phone,
+        customer.id
+      ],
+      function (err) {
+        if (err) {
+          reject(err.message);
+        } else {
+          resolve({ message: "Asiakas päivitetty onnistuneesti" });
+        }
+      }
+    );
+  });
+});
+
 // =========================
 // LASKUT
 // =========================

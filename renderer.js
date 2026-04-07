@@ -6,14 +6,19 @@ const { ipcRenderer } = require("electron");
 const customersSection = document.getElementById("customersSection");
 const newInvoiceSection = document.getElementById("newInvoiceSection");
 const invoicesSection = document.getElementById("invoicesSection");
+const settingsSection = document.getElementById("settingsSection");
 
 const showCustomersBtn = document.getElementById("showCustomers");
 const showNewInvoiceBtn = document.getElementById("showNewInvoice");
 const showInvoicesBtn = document.getElementById("showInvoices");
+const showSettingsBtn = document.getElementById("showSettings");
 
 const customerForm = document.getElementById("customerForm");
 const customerList = document.getElementById("customerList");
 const customerMessage = document.getElementById("customerMessage");
+const customerIdInput = document.getElementById("customerId");
+const saveCustomerBtn = document.getElementById("saveCustomerBtn");
+const cancelEditBtn = document.getElementById("cancelEditBtn");
 
 const invoiceForm = document.getElementById("invoiceForm");
 const invoiceCustomer = document.getElementById("invoiceCustomer");
@@ -22,13 +27,11 @@ const addRowBtn = document.getElementById("addRowBtn");
 const invoiceTotal = document.getElementById("invoiceTotal");
 const invoiceMessage = document.getElementById("invoiceMessage");
 const invoiceList = document.getElementById("invoiceList");
-
-const settingsSection = document.getElementById("settingsSection");
-const showSettingsBtn = document.getElementById("showSettings");
+const invoiceNumberInput = document.getElementById("invoiceNumber");
+const referenceNumberInput = document.getElementById("referenceNumber");
 
 const settingsForm = document.getElementById("settingsForm");
 const settingsMessage = document.getElementById("settingsMessage");
-
 const selectLogoBtn = document.getElementById("selectLogoBtn");
 const settingsLogoPath = document.getElementById("settingsLogoPath");
 
@@ -44,8 +47,18 @@ function showSection(sectionToShow) {
   sectionToShow.classList.remove("hidden");
 }
 
-showCustomersBtn.addEventListener("click", () => showSection(customersSection));
-showNewInvoiceBtn.addEventListener("click", () => showSection(newInvoiceSection));
+showCustomersBtn.addEventListener("click", async () => {
+  showSection(customersSection);
+  await loadCustomers();
+});
+
+showNewInvoiceBtn.addEventListener("click", async () => {
+  showSection(newInvoiceSection);
+  await loadCustomers();
+  await setNextInvoiceNumber();
+  setDefaultDates();
+});
+
 showInvoicesBtn.addEventListener("click", async () => {
   showSection(invoicesSection);
   await loadInvoices();
@@ -56,6 +69,9 @@ showSettingsBtn.addEventListener("click", async () => {
   await loadSettings();
 });
 
+// =========================
+// LOGON VALINTA
+// =========================
 selectLogoBtn.addEventListener("click", async () => {
   try {
     const selectedPath = await ipcRenderer.invoke("select-logo");
@@ -66,6 +82,25 @@ selectLogoBtn.addEventListener("click", async () => {
     settingsMessage.textContent = "Virhe logon valinnassa: " + error;
   }
 });
+
+// =========================
+// ASIAKASLOMAKKEEN RESET
+// =========================
+function resetCustomerForm() {
+  customerForm.reset();
+
+  if (customerIdInput) {
+    customerIdInput.value = "";
+  }
+
+  if (saveCustomerBtn) {
+    saveCustomerBtn.textContent = "Tallenna asiakas";
+  }
+
+  if (cancelEditBtn) {
+    cancelEditBtn.classList.add("hidden");
+  }
+}
 
 // =========================
 // ASIAKKAAT
@@ -89,6 +124,7 @@ async function loadCustomers() {
             <p><strong>Osoite:</strong> ${customer.address || "-"}, ${customer.postalCode || ""} ${customer.city || ""}</p>
             <p><strong>Sähköposti:</strong> ${customer.email || "-"}</p>
             <p><strong>Puhelin:</strong> ${customer.phone || "-"}</p>
+            <button class="edit-customer-btn" data-id="${customer.id}">Muokkaa</button>
           </div>
         `
       )
@@ -100,6 +136,31 @@ async function loadCustomers() {
         .map((customer) => `<option value="${customer.id}">${customer.name}</option>`)
         .join("")}
     `;
+
+    document.querySelectorAll(".edit-customer-btn").forEach((button) => {
+      button.addEventListener("click", async () => {
+        const customerId = parseInt(button.dataset.id);
+        const customers = await ipcRenderer.invoke("get-customers");
+        const customer = customers.find((c) => c.id === customerId);
+
+        if (!customer) return;
+
+        customerIdInput.value = customer.id;
+        document.getElementById("name").value = customer.name || "";
+        document.getElementById("businessId").value = customer.businessId || "";
+        document.getElementById("address").value = customer.address || "";
+        document.getElementById("postalCode").value = customer.postalCode || "";
+        document.getElementById("city").value = customer.city || "";
+        document.getElementById("email").value = customer.email || "";
+        document.getElementById("phone").value = customer.phone || "";
+
+        saveCustomerBtn.textContent = "Päivitä asiakas";
+        cancelEditBtn.classList.remove("hidden");
+
+        showSection(customersSection);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+    });
   } catch (error) {
     customerList.innerHTML = `<p>Virhe asiakkaiden haussa: ${error}</p>`;
   }
@@ -109,6 +170,7 @@ customerForm.addEventListener("submit", async (e) => {
   e.preventDefault();
 
   const customer = {
+    id: customerIdInput && customerIdInput.value ? parseInt(customerIdInput.value) : null,
     name: document.getElementById("name").value,
     businessId: document.getElementById("businessId").value,
     address: document.getElementById("address").value,
@@ -119,14 +181,28 @@ customerForm.addEventListener("submit", async (e) => {
   };
 
   try {
-    const result = await ipcRenderer.invoke("add-customer", customer);
+    let result;
+
+    if (customer.id) {
+      result = await ipcRenderer.invoke("update-customer", customer);
+    } else {
+      result = await ipcRenderer.invoke("add-customer", customer);
+    }
+
     customerMessage.textContent = result.message;
-    customerForm.reset();
+    resetCustomerForm();
     await loadCustomers();
   } catch (error) {
     customerMessage.textContent = "Virhe asiakkaan tallennuksessa: " + error;
   }
 });
+
+if (cancelEditBtn) {
+  cancelEditBtn.addEventListener("click", () => {
+    resetCustomerForm();
+    customerMessage.textContent = "";
+  });
+}
 
 // =========================
 // LASKURIVIT
@@ -172,7 +248,6 @@ function createRowHtml() {
   });
 
   updateRowTotal();
-
   return row;
 }
 
@@ -216,11 +291,10 @@ function updateInvoiceTotal() {
 addRowBtn.addEventListener("click", addInvoiceRow);
 
 // =========================
-// LASKUN TALLENNUS
+// VIITENUMERO
 // =========================
 function generateReferenceNumber(baseNumber) {
   const digitsOnly = String(baseNumber).replace(/\D/g, "");
-
   if (!digitsOnly) return "";
 
   const multipliers = [7, 3, 1];
@@ -236,16 +310,14 @@ function generateReferenceNumber(baseNumber) {
   return digitsOnly + checkDigit;
 }
 
-const invoiceNumberInput = document.getElementById("invoiceNumber");
-const referenceNumberInput = document.getElementById("referenceNumber");
-
 invoiceNumberInput.addEventListener("input", () => {
   const invoiceNumber = invoiceNumberInput.value;
-  const generatedReference = generateReferenceNumber(invoiceNumber);
-  referenceNumberInput.value = generatedReference;
+  referenceNumberInput.value = generateReferenceNumber(invoiceNumber);
 });
 
-
+// =========================
+// LASKUN TALLENNUS
+// =========================
 invoiceForm.addEventListener("submit", async (e) => {
   e.preventDefault();
 
@@ -256,22 +328,22 @@ invoiceForm.addEventListener("submit", async (e) => {
     return;
   }
 
-    const total = rows.reduce((sum, row) => sum + row.rowTotal, 0);
+  const total = rows.reduce((sum, row) => sum + row.rowTotal, 0);
 
-    const invoiceNumberValue = document.getElementById("invoiceNumber").value;
-    const autoReferenceNumber = generateReferenceNumber(invoiceNumberValue);
+  const invoiceNumberValue = invoiceNumberInput.value;
+  const autoReferenceNumber = generateReferenceNumber(invoiceNumberValue);
 
-    const invoiceData = {
-        customerId: parseInt(invoiceCustomer.value),
-        invoiceNumber: invoiceNumberValue,
-        date: document.getElementById("invoiceDate").value,
-        dueDate: document.getElementById("invoiceDueDate").value,
-        referenceNumber: autoReferenceNumber,
-        total: parseFloat(total.toFixed(2)),
-        rows
-    };
+  const invoiceData = {
+    customerId: parseInt(invoiceCustomer.value),
+    invoiceNumber: invoiceNumberValue,
+    date: document.getElementById("invoiceDate").value,
+    dueDate: document.getElementById("invoiceDueDate").value,
+    referenceNumber: autoReferenceNumber,
+    total: parseFloat(total.toFixed(2)),
+    rows
+  };
 
-    try {
+  try {
     const result = await ipcRenderer.invoke("save-invoice", invoiceData);
     invoiceMessage.textContent = result.message;
 
@@ -280,9 +352,7 @@ invoiceForm.addEventListener("submit", async (e) => {
     addInvoiceRow();
     updateInvoiceTotal();
 
-    // asetetaan päiväys uudelleen
     setDefaultDates();
-
     await setNextInvoiceNumber();
     await loadInvoices();
   } catch (error) {
@@ -353,12 +423,14 @@ async function loadInvoices() {
         }
       });
     });
-
   } catch (error) {
     invoiceList.innerHTML = `<p>Virhe laskujen haussa: ${error}</p>`;
   }
 }
 
+// =========================
+// ASETUKSET
+// =========================
 async function loadSettings() {
   try {
     const settings = await ipcRenderer.invoke("get-settings");
@@ -394,7 +466,6 @@ settingsForm.addEventListener("submit", async (e) => {
     iban: document.getElementById("settingsIban").value,
     bic: document.getElementById("settingsBic").value,
     logoPath: document.getElementById("settingsLogoPath").value
-
   };
 
   try {

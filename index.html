@@ -25,6 +25,8 @@
           <h2>Lisää uusi asiakas</h2>
 
           <form id="customerForm">
+            <input type="hidden" id="customerId" />
+
             <input type="text" id="name" placeholder="Asiakkaan nimi" required />
             <input type="text" id="businessId" placeholder="Y-tunnus" />
             <input type="text" id="address" placeholder="Osoite" />
@@ -32,7 +34,11 @@
             <input type="text" id="city" placeholder="Kaupunki" />
             <input type="email" id="email" placeholder="Sähköposti" />
             <input type="text" id="phone" placeholder="Puhelin" />
-            <button type="submit">Tallenna asiakas</button>
+
+            <div class="button-row">
+              <button type="submit" id="saveCustomerBtn">Tallenna asiakas</button>
+              <button type="button" id="cancelEditBtn" class="hidden secondary-btn">Peruuta muokkaus</button>
+            </div>
           </form>
 
           <p id="customerMessage"></p>
@@ -49,37 +55,55 @@
         <h1>Uusi lasku</h1>
 
         <div class="form-section">
-            <form id="invoiceForm">
-            <div class="field-group">
+          <form id="invoiceForm">
+            <div class="invoice-top-fields">
+              <div class="field-group">
                 <label for="invoiceCustomer">Asiakas</label>
                 <select id="invoiceCustomer" required>
-                    <option value="">Valitse asiakas</option>
+                  <option value="">Valitse asiakas</option>
                 </select>
+              </div>
+
+              <div class="invoice-two-columns">
+                <div class="field-group">
+                  <label for="invoiceNumber">Laskunumero</label>
+                  <input
+                    type="text"
+                    id="invoiceNumber"
+                    placeholder="Laskunumero muodostuu automaattisesti"
+                    readonly
+                    required
+                  />
+                </div>
+
+                <div class="field-group">
+                  <label for="referenceNumber">Viitenumero</label>
+                  <input
+                    type="text"
+                    id="referenceNumber"
+                    placeholder="Viitenumero muodostuu automaattisesti"
+                    readonly
+                  />
+                </div>
+              </div>
+
+              <div class="invoice-two-columns">
+                <div class="field-group">
+                  <label for="invoiceDate">Laskun päivämäärä</label>
+                  <input type="date" id="invoiceDate" required />
+                </div>
+
+                <div class="field-group">
+                  <label for="invoiceDueDate">Eräpäivä</label>
+                  <input type="date" id="invoiceDueDate" required />
+                </div>
+              </div>
             </div>
-        
-            <div class="field-group">
-                <label for="invoiceNumber">Laskunumero</label>
-                <input type="text" id="invoiceNumber" placeholder="Laskunumero muodostuu automaattisesti" readonly required />
-            </div>
-        
-            <div class="field-group">
-                <label for="invoiceDate">Laskun päivämäärä</label>
-                <input type="date" id="invoiceDate" required />
-            </div>
-        
-            <div class="field-group">
-                <label for="invoiceDueDate">Eräpäivä</label>
-                <input type="date" id="invoiceDueDate" required />
-            </div>
-        
-            <div class="field-group">
-                <label for="referenceNumber">Viitenumero</label>
-                <input type="text" id="referenceNumber" placeholder="Viitenumero muodostuu automaattisesti" readonly />
-            </div>
-            
+
             <h3>Laskurivit</h3>
-            
-            <div class="invoice-row-header">
+
+            <div class="invoice-lines-wrapper">
+              <div class="invoice-row-header">
                 <span>Kuvaus</span>
                 <span>Määrä</span>
                 <span>Yksikkö</span>
@@ -87,18 +111,19 @@
                 <span>ALV %</span>
                 <span>Rivisumma / €</span>
                 <span>Toiminto</span>
-            </div>
-            
-            <div id="invoiceRows"></div>
-            
-            <button type="button" id="addRowBtn">Lisää rivi</button>
+              </div>
 
-            <div class="total-box">
-              <strong>Kokonaissumma: </strong>
-              <span id="invoiceTotal">0.00 €</span>
-            </div>
+              <div id="invoiceRows"></div>
 
-            <button type="submit" id="saveInvoiceBtn">Tallenna lasku</button>
+              <button type="button" id="addRowBtn">Lisää rivi</button>
+
+              <div class="total-box">
+                <strong>Kokonaissumma:</strong>
+                <span id="invoiceTotal">0.00 €</span>
+              </div>
+
+              <button type="submit" id="saveInvoiceBtn">Tallenna lasku</button>
+            </div>
           </form>
 
           <p id="invoiceMessage"></p>
@@ -113,35 +138,39 @@
           <div id="invoiceList"></div>
         </div>
       </section>
-    <section id="settingsSection" class="hidden">
+
+      <!-- ASETUKSET -->
+      <section id="settingsSection" class="hidden">
         <h1>Asetukset</h1>
-    
+
         <div class="form-section">
-            <h2>Yrityksen tiedot</h2>
-    
-            <form id="settingsForm">
-                <input type="text" id="companyName" placeholder="Yrityksen nimi" />
-                <input type="text" id="settingsBusinessId" placeholder="Y-tunnus" />
-                <input type="text" id="settingsAddress" placeholder="Osoite" />
-                <input type="text" id="settingsPostalCode" placeholder="Postinumero" />
-                <input type="text" id="settingsCity" placeholder="Kaupunki" />
-                <input type="email" id="settingsEmail" placeholder="Sähköposti" />
-                <input type="text" id="settingsPhone" placeholder="Puhelin" />
-                <input type="url" id="settingsWebsite" placeholder="Verkkosivu (http://www.sinunyritys.fi)" />
-                <div class="field-group">
-                  <label for="settingsLogoPath">Logon tiedostopolku</label>
-                  <input type="text" id="settingsLogoPath" placeholder="Valitse logotiedosto" readonly />
-                  <button type="button" id="selectLogoBtn">Valitse logo</button>
-                </div>
-                <input type="text" id="settingsIban" placeholder="IBAN" />
-                <input type="text" id="settingsBic" placeholder="BIC" />
-    
-                <button type="submit">Tallenna asetukset</button>
-            </form>
-    
-            <p id="settingsMessage"></p>
+          <h2>Yrityksen tiedot</h2>
+
+          <form id="settingsForm">
+            <input type="text" id="companyName" placeholder="Yrityksen nimi" />
+            <input type="text" id="settingsBusinessId" placeholder="Y-tunnus" />
+            <input type="text" id="settingsAddress" placeholder="Osoite" />
+            <input type="text" id="settingsPostalCode" placeholder="Postinumero" />
+            <input type="text" id="settingsCity" placeholder="Kaupunki" />
+            <input type="email" id="settingsEmail" placeholder="Sähköposti" />
+            <input type="text" id="settingsPhone" placeholder="Puhelin" />
+            <input type="url" id="settingsWebsite" placeholder="Verkkosivu (http://www.sinunyritys.fi)" />
+
+            <div class="field-group">
+              <label for="settingsLogoPath">Logon tiedostopolku</label>
+              <input type="text" id="settingsLogoPath" placeholder="Valitse logotiedosto" readonly />
+              <button type="button" id="selectLogoBtn">Valitse logo</button>
+            </div>
+
+            <input type="text" id="settingsIban" placeholder="IBAN" />
+            <input type="text" id="settingsBic" placeholder="BIC" />
+
+            <button type="submit">Tallenna asetukset</button>
+          </form>
+
+          <p id="settingsMessage"></p>
         </div>
-    </section>
+      </section>
     </main>
   </div>
 
