@@ -360,6 +360,20 @@ ipcMain.handle("generate-invoice-pdf", async (event, invoiceId) => {
           const darkColor = "#1f2937";
           const lightGray = "#e5e7eb";
 
+          // Summat
+          const subtotal = rows.reduce((sum, row) => {
+            const rowSubtotal = Number(row.quantity || 0) * Number(row.price || 0);
+            return sum + rowSubtotal;
+          }, 0);
+
+          const vatTotal = rows.reduce((sum, row) => {
+            const rowSubtotal = Number(row.quantity || 0) * Number(row.price || 0);
+            const rowVat = rowSubtotal * (Number(row.vat || 0) / 100);
+            return sum + rowVat;
+          }, 0);
+
+          const grandTotal = subtotal + vatTotal;
+
           // Otsikko
           doc
             .fontSize(26)
@@ -482,26 +496,34 @@ ipcMain.handle("generate-invoice-pdf", async (event, invoiceId) => {
             }
           });
 
-          // Summa-laatikko
+          // Summalaatikko
           y += 15;
 
           doc
-            .roundedRect(350, y, 210, 50, 8)
+            .roundedRect(320, y, 240, 90, 8)
             .fillAndStroke("#eef6fb", "#d1e3f0");
 
           doc
             .fillColor(darkColor)
             .fontSize(11)
-            .text("Kokonaissumma", 365, y + 10)
-            .fontSize(16)
-            .fillColor(primaryColor)
-            .text(`${Number(invoice.total || 0).toFixed(2)} €`, 365, y + 25);
-
-          // Maksutiedot laatikossa
-          y += 80;
+            .text("Veroton summa", 335, y + 12)
+            .text(`${subtotal.toFixed(2)} €`, 470, y + 12, { width: 70, align: "right" });
 
           doc
-            .roundedRect(50, y, 510, 120, 8)
+            .text("ALV", 335, y + 34)
+            .text(`${vatTotal.toFixed(2)} €`, 470, y + 34, { width: 70, align: "right" });
+
+          doc
+            .fontSize(13)
+            .fillColor(primaryColor)
+            .text("Yhteensä", 335, y + 60)
+            .text(`${grandTotal.toFixed(2)} €`, 460, y + 60, { width: 80, align: "right" });
+
+          // Maksutiedot laatikossa
+          y += 110;
+
+          doc
+            .roundedRect(50, y, 510, 105, 8)
             .strokeColor(lightGray)
             .stroke();
 
@@ -518,13 +540,13 @@ ipcMain.handle("generate-invoice-pdf", async (event, invoiceId) => {
             .text(`BIC: ${settings.bic || "-"}`, 65, y + 76)
             .text(`Viitenumero: ${invoice.referenceNumber || "-"}`, 300, y + 40)
             .text(`Eräpäivä: ${invoice.dueDate}`, 300, y + 58)
-            .text(`Summa: ${Number(invoice.total || 0).toFixed(2)} €`, 300, y + 76);
+            .text(`Summa: ${grandTotal.toFixed(2)} €`, 300, y + 76);
 
           // Viivakoodi
           try {
             const barcodeString = createFinnishBarcodeString({
               iban: settings.iban,
-              amount: invoice.total,
+              amount: grandTotal,
               referenceNumber: invoice.referenceNumber,
               dueDate: invoice.dueDate
             });
@@ -544,7 +566,7 @@ ipcMain.handle("generate-invoice-pdf", async (event, invoiceId) => {
 
             doc.image(pngBuffer, 50, y + 165, {
               width: 400,
-              height: 70
+              height: 30
             });
           } catch (barcodeError) {
             doc

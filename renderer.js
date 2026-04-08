@@ -24,6 +24,8 @@ const invoiceForm = document.getElementById("invoiceForm");
 const invoiceCustomer = document.getElementById("invoiceCustomer");
 const invoiceRows = document.getElementById("invoiceRows");
 const addRowBtn = document.getElementById("addRowBtn");
+const invoiceSubtotal = document.getElementById("invoiceSubtotal");
+const invoiceVatTotal = document.getElementById("invoiceVatTotal");
 const invoiceTotal = document.getElementById("invoiceTotal");
 const invoiceMessage = document.getElementById("invoiceMessage");
 const invoiceList = document.getElementById("invoiceList");
@@ -265,7 +267,9 @@ function getInvoiceRowsData() {
     const unit = row.querySelector(".row-unit").value;
     const price = parseFloat(row.querySelector(".row-price").value) || 0;
     const vat = parseFloat(row.querySelector(".row-vat").value) || 0;
-    const rowTotal = quantity * price * (1 + vat / 100);
+    const subtotal = quantity * price;
+    const vatAmount = subtotal * (vat / 100);
+    const rowTotal = subtotal + vatAmount;
 
     if (description.trim() !== "") {
       rows.push({
@@ -274,6 +278,8 @@ function getInvoiceRowsData() {
         unit,
         price,
         vat,
+        subtotal: parseFloat(subtotal.toFixed(2)),
+        vatAmount: parseFloat(vatAmount.toFixed(2)),
         rowTotal: parseFloat(rowTotal.toFixed(2))
       });
     }
@@ -284,7 +290,13 @@ function getInvoiceRowsData() {
 
 function updateInvoiceTotal() {
   const rows = getInvoiceRowsData();
+
+  const subtotal = rows.reduce((sum, row) => sum + row.subtotal, 0);
+  const vatTotal = rows.reduce((sum, row) => sum + row.vatAmount, 0);
   const total = rows.reduce((sum, row) => sum + row.rowTotal, 0);
+
+  invoiceSubtotal.textContent = subtotal.toFixed(2) + " €";
+  invoiceVatTotal.textContent = vatTotal.toFixed(2) + " €";
   invoiceTotal.textContent = total.toFixed(2) + " €";
 }
 

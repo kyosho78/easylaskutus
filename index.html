@@ -116,12 +116,24 @@
               <div id="invoiceRows"></div>
 
               <button type="button" id="addRowBtn">Lisää rivi</button>
-
-              <div class="total-box">
-                <strong>Kokonaissumma:</strong>
-                <span id="invoiceTotal">0.00 €</span>
+              
+              <div class="totals-box">
+                <div class="total-row">
+                  <span>Veroton summa</span>
+                  <span id="invoiceSubtotal">0.00 €</span>
+                </div>
+              
+                <div class="total-row">
+                  <span>ALV</span>
+                  <span id="invoiceVatTotal">0.00 €</span>
+                </div>
+              
+                <div class="total-row total-row-grand">
+                  <span>Yhteensä</span>
+                  <span id="invoiceTotal">0.00 €</span>
+                </div>
               </div>
-
+              
               <button type="submit" id="saveInvoiceBtn">Tallenna lasku</button>
             </div>
           </form>
