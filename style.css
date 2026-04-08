@@ -233,12 +233,13 @@ select {
   font-weight: bold;
 }
 
-.pdf-btn {
-  margin-top: 10px;
+.pdf-btn,
+.email-btn {
+  width: 210px;
   padding: 10px 14px;
   border: none;
   border-radius: 8px;
-  background: #198754;
+  background: #0d5f8f;
   color: white;
   font-weight: bold;
   cursor: pointer;
@@ -246,6 +247,10 @@ select {
 
 .pdf-btn:hover {
   background: #146c43;
+}
+
+.email-btn:hover {
+  background: #09486c;
 }
 
 .status-select {
@@ -366,5 +371,88 @@ select {
 }
 
 .status-select:hover {
+  background: #09486c;
+}
+
+.invoice-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.email-btn {
+  padding: 10px 14px;
+  border: none;
+  border-radius: 8px;
+  background: #0d5f8f;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.email-btn:hover {
+  background: #09486c;
+}
+
+.invoice-footer {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
+.invoice-status-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.invoice-status-label {
+  color: #1f2937;
+  font-size: 14px;
+}
+
+.status-select {
+  width: 170px;
+  padding: 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 14px;
+  background: #0d5f8f;
+  margin: 0;
+}
+
+.invoice-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pdf-btn,
+.email-btn {
+  width: 210px;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.pdf-btn {
+  background: #198754;
+}
+
+.pdf-btn:hover {
+  background: #146c43;
+}
+
+.email-btn {
+  background: #0d5f8f;
+}
+
+.email-btn:hover {
   background: #09486c;
 }

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog, shell } = require("electron");
 const fs = require("fs");
 const PDFDocument = require("pdfkit");
 const bwipjs = require("bwip-js");
@@ -649,6 +649,57 @@ ipcMain.handle("update-invoice-status", async (event, invoiceId, newStatus) => {
         reject(err.message);
       } else {
         resolve({ message: "Laskun tila päivitetty onnistuneesti" });
+      }
+    });
+  });
+});
+
+// =========================
+// Sähköpostin avaaminen
+// =========================
+ipcMain.handle("prepare-invoice-email", async (event, invoiceId) => {
+  return new Promise((resolve, reject) => {
+    const invoiceSql = `
+      SELECT invoices.*, customers.name AS customerName, customers.email AS customerEmail
+      FROM invoices
+      LEFT JOIN customers ON invoices.customerId = customers.id
+      WHERE invoices.id = ?
+    `;
+
+    db.get(invoiceSql, [invoiceId], async (err, invoice) => {
+      if (err) {
+        reject(err.message);
+        return;
+      }
+
+      if (!invoice) {
+        reject("Laskua ei löytynyt.");
+        return;
+      }
+
+      if (!invoice.customerEmail) {
+        reject("Asiakkaalla ei ole sähköpostiosoitetta.");
+        return;
+      }
+
+      const subject = `Lasku ${invoice.invoiceNumber}`;
+      const body =
+        `Hei,%0D%0A%0D%0A` +
+        `Liitteenä lasku ${invoice.invoiceNumber}.%0D%0A%0D%0A` +
+        `Ystävällisin terveisin`;
+
+      const mailtoLink =
+        `mailto:${encodeURIComponent(invoice.customerEmail)}` +
+        `?subject=${encodeURIComponent(subject)}` +
+        `&body=${body}`;
+
+      try {
+        await shell.openExternal(mailtoLink);
+        resolve({
+          message: `Sähköpostiluonnos avattu asiakkaalle ${invoice.customerEmail}`
+        });
+      } catch (openError) {
+        reject("Sähköpostiluonnoksen avaaminen epäonnistui: " + openError.message);
       }
     });
   });

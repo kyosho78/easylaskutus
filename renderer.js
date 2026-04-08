@@ -395,14 +395,21 @@ async function loadInvoices() {
             <p><strong>Viite:</strong> ${invoice.referenceNumber || "-"}</p>
             <p><strong>Summa:</strong> ${Number(invoice.total).toFixed(2)} €</p>
 
-            <p><strong>Tila:</strong></p>
-            <select class="status-select" data-id="${invoice.id}">
-              <option value="Luotu" ${invoice.status === "Luotu" ? "selected" : ""}>Luotu</option>
-              <option value="Lähetetty" ${invoice.status === "Lähetetty" ? "selected" : ""}>Lähetetty</option>
-              <option value="Maksettu" ${invoice.status === "Maksettu" ? "selected" : ""}>Maksettu</option>
-            </select>
+            <div class="invoice-footer">
+              <div class="invoice-status-block">
+                <label class="invoice-status-label"><strong>Tila:</strong></label>
+                <select class="status-select" data-id="${invoice.id}">
+                  <option value="Luotu" ${invoice.status === "Luotu" ? "selected" : ""}>Luotu</option>
+                  <option value="Lähetetty" ${invoice.status === "Lähetetty" ? "selected" : ""}>Lähetetty</option>
+                  <option value="Maksettu" ${invoice.status === "Maksettu" ? "selected" : ""}>Maksettu</option>
+                </select>
+              </div>
 
-            <button class="pdf-btn" data-id="${invoice.id}">Luo PDF</button>
+              <div class="invoice-actions">
+                <button class="pdf-btn" data-id="${invoice.id}">Luo PDF</button>
+                <button class="email-btn" data-id="${invoice.id}">Luo PDF ja lähetä</button>
+              </div>
+            </div>
           </div>
         `
       )
@@ -418,6 +425,30 @@ async function loadInvoices() {
         } catch (error) {
           alert("Virhe PDF:n luonnissa: " + error);
           console.error("PDF virhe:", error);
+        }
+      });
+    });
+
+    document.querySelectorAll(".email-btn").forEach((button) => {
+      button.addEventListener("click", async () => {
+        const invoiceId = parseInt(button.dataset.id);
+
+        try {
+          const pdfResult = await ipcRenderer.invoke("generate-invoice-pdf", invoiceId);
+
+          if (!pdfResult || typeof pdfResult !== "string") {
+            alert("PDF:n luonti epäonnistui.");
+            return;
+          }
+
+          const emailResult = await ipcRenderer.invoke("prepare-invoice-email", invoiceId);
+
+          alert(
+            `${pdfResult}\n\n${emailResult.message}\n\n⚠️ Muista lisätä tallennettu PDF liitteeksi sähköpostiin.`
+          );
+        } catch (error) {
+          alert("Virhe PDF:n luonnissa tai sähköpostiluonnoksen avauksessa: " + error);
+          console.error("Combo-toiminnon virhe:", error);
         }
       });
     });
