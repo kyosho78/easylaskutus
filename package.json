@@ -1,17 +1,45 @@
 {
   "name": "easylaskutus",
   "version": "1.0.0",
-  "description": "",
+  "description": "EasyLaskutus desktop app",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "dist:win": "electron-builder --win portable nsis",
+    "dist:linux": "electron-builder --linux AppImage",
+    "dist": "electron-builder --win portable nsis --linux AppImage"
   },
   "keywords": [],
-  "author": "",
+  "author": "Valter Backström",
   "license": "ISC",
   "type": "commonjs",
+  "build": {
+    "appId": "fi.easylaskutus.app",
+    "productName": "EasyLaskutus",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "!dist/**",
+      "!node_modules/.cache/**"
+    ],
+    "win": {
+      "target": [
+        "portable",
+        "nsis"
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Office"
+    }
+  },
   "devDependencies": {
-    "electron": "^41.1.1"
+    "electron": "^41.1.1",
+    "electron-builder": "^26.8.1"
   },
   "dependencies": {
     "bwip-js": "^4.9.0",
