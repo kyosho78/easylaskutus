@@ -3,12 +3,13 @@
   "version": "1.0.0",
   "description": "EasyLaskutus desktop app",
   "main": "main.js",
-  "scripts": {
-    "start": "electron .",
-    "dist:win": "electron-builder --win portable nsis",
-    "dist:linux": "electron-builder --linux AppImage",
-    "dist": "electron-builder --win portable nsis --linux AppImage"
-  },
+"scripts": {
+  "start": "electron .",
+  "postinstall": "electron-builder install-app-deps",
+  "dist:win": "electron-builder --win portable nsis --publish never",
+  "dist:linux": "electron-builder --linux AppImage --publish never",
+  "dist": "electron-builder --win portable nsis --linux AppImage --publish never"
+},
   "keywords": [],
   "author": "Valter Backström",
   "license": "ISC",
