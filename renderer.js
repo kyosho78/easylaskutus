@@ -37,6 +37,11 @@ const settingsMessage = document.getElementById("settingsMessage");
 const selectLogoBtn = document.getElementById("selectLogoBtn");
 const settingsLogoPath = document.getElementById("settingsLogoPath");
 
+const exportDbBtn = document.getElementById("export-db-btn");
+const importDbBtn = document.getElementById("import-db-btn");
+const exportCustomersBtn = document.getElementById("export-customers-btn");
+const exportInvoicesBtn = document.getElementById("export-invoices-btn");
+
 // =========================
 // NÄKYMIEN VAIHTO
 // =========================
@@ -84,6 +89,60 @@ selectLogoBtn.addEventListener("click", async () => {
     settingsMessage.textContent = "Virhe logon valinnassa: " + error;
   }
 });
+
+// =========================
+// TIETOKANNAN TUONTI/VIENTI
+// =========================
+if (exportDbBtn) {
+  exportDbBtn.addEventListener("click", async () => {
+    try {
+      const result = await ipcRenderer.invoke("export-database");
+      alert(result.message);
+    } catch (error) {
+      alert("Virhe tietokannan viennissä: " + error);
+    }
+  });
+}
+
+if (importDbBtn) {
+  importDbBtn.addEventListener("click", async () => {
+    const confirmed = confirm(
+      "Haluatko varmasti tuoda tietokannan? Nykyinen tietokanta korvataan."
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const result = await ipcRenderer.invoke("import-database");
+      alert(result.message);
+      await ipcRenderer.invoke("restart-app");
+    } catch (error) {
+      alert("Virhe tietokannan tuonnissa: " + error);
+    }
+  });
+}
+
+if (exportCustomersBtn) {
+  exportCustomersBtn.addEventListener("click", async () => {
+    try {
+      const result = await ipcRenderer.invoke("export-customers-csv");
+      alert(result.message);
+    } catch (error) {
+      alert("Virhe asiakkaiden CSV-viennissä: " + error);
+    }
+  });
+}
+
+if (exportInvoicesBtn) {
+  exportInvoicesBtn.addEventListener("click", async () => {
+    try {
+      const result = await ipcRenderer.invoke("export-invoices-csv");
+      alert(result.message);
+    } catch (error) {
+      alert("Virhe laskujen CSV-viennissä: " + error);
+    }
+  });
+}
 
 // =========================
 // ASIAKASLOMAKKEEN RESET

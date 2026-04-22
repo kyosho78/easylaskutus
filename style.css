@@ -69,7 +69,8 @@ select {
 }
 
 #customerForm button,
-#settingsForm button {
+#settingsForm button,
+.backup-section button {
   width: 220px;
   justify-self: start;
   padding: 12px;
@@ -108,6 +109,7 @@ select {
 
 #customerForm button:hover,
 #settingsForm button:hover,
+.backup-section button:hover,
 #addRowBtn:hover,
 #saveInvoiceBtn:hover,
 .remove-row-btn:hover {
@@ -455,4 +457,20 @@ select {
 
 .email-btn:hover {
   background: #09486c;
+}
+
+.backup-section {
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid #ddd;
+}
+
+.backup-section h2 {
+  margin-bottom: 15px;
+}
+
+.backup-section .button-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
 }

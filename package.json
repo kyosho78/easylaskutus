@@ -3,13 +3,13 @@
   "version": "1.0.0",
   "description": "EasyLaskutus desktop app",
   "main": "main.js",
-"scripts": {
-  "start": "electron .",
-  "postinstall": "electron-builder install-app-deps",
-  "dist:win": "electron-builder --win portable nsis --publish never",
-  "dist:linux": "electron-builder --linux AppImage --publish never",
-  "dist": "electron-builder --win portable nsis --linux AppImage --publish never"
-},
+  "scripts": {
+    "start": "electron .",
+    "postinstall": "electron-builder install-app-deps",
+    "dist:win": "electron-builder --win portable nsis --publish never",
+    "dist:linux": "electron-builder --linux AppImage --publish never",
+    "dist": "electron-builder --win portable nsis --linux AppImage --publish never"
+  },
   "keywords": [],
   "author": "Valter Backström",
   "license": "ISC",
@@ -21,20 +21,27 @@
       "output": "dist"
     },
     "files": [
-      "**/*",
-      "!dist/**",
-      "!node_modules/.cache/**"
+      "main.js",
+      "renderer.js",
+      "index.html",
+      "style.css",
+      "database.js",
+      "package.json",
+      "laskutus.db",
+      "build/**/*"
     ],
     "win": {
       "target": [
         "portable",
         "nsis"
-      ]
+      ],
+      "icon": "build/icon.ico"
     },
     "linux": {
       "target": [
         "AppImage"
       ],
+      "icon": "build/icon.png",
       "category": "Office"
     }
   },

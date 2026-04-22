@@ -1,8 +1,24 @@
 const sqlite3 = require("sqlite3").verbose();
 const path = require("path");
+const fs = require("fs");
+const { app } = require("electron");
 
-const dbPath = path.join(__dirname, "laskutus.db");
+const baseDir = app.isPackaged
+  ? path.join(app.getPath("userData"), "data")
+  : __dirname;
+
+if (!fs.existsSync(baseDir)) {
+  fs.mkdirSync(baseDir, { recursive: true });
+}
+
+const dbPath = path.join(baseDir, "laskutus.db");
+
+console.log("DB PATH:", dbPath);
+console.log("APP IS PACKAGED:", app.isPackaged);
+
 const db = new sqlite3.Database(dbPath);
+
+db.filename = dbPath;
 
 db.serialize(() => {
   db.run(`

@@ -2,7 +2,7 @@ const { app, BrowserWindow, ipcMain, dialog, shell } = require("electron");
 const fs = require("fs");
 const PDFDocument = require("pdfkit");
 const bwipjs = require("bwip-js");
-const db = require("./database");
+let db;
 
 // ==========================
 // VIIVAKOODI
@@ -61,6 +61,7 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  db = require("./database");
   createWindow();
 
   app.on("activate", function () {
@@ -775,4 +776,249 @@ ipcMain.handle("select-logo", async () => {
   }
 
   return result.filePaths[0];
+});
+
+ipcMain.handle("export-database", async () => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const sourceDbPath = db.filename;
+
+      if (!sourceDbPath) {
+        reject("Tietokannan polkua ei löytynyt.");
+        return;
+      }
+
+      const result = await dialog.showSaveDialog({
+        title: "Vie tietokanta",
+        defaultPath: "laskutus-backup.db",
+        filters: [{ name: "Database", extensions: ["db"] }]
+      });
+
+      if (result.canceled || !result.filePath) {
+        reject("Vienti peruutettiin.");
+        return;
+      }
+
+      fs.copyFile(sourceDbPath, result.filePath, (err) => {
+        if (err) {
+          reject("Tietokannan vienti epäonnistui: " + err.message);
+        } else {
+          resolve({ message: `Tietokanta vietiin: ${result.filePath}` });
+        }
+      });
+    } catch (error) {
+      reject("Tietokannan vienti epäonnistui: " + error.message);
+    }
+  });
+});
+
+ipcMain.handle("import-database", async () => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const result = await dialog.showOpenDialog({
+        title: "Tuo tietokanta",
+        properties: ["openFile"],
+        filters: [{ name: "Database", extensions: ["db"] }]
+      });
+
+      if (result.canceled || !result.filePaths.length) {
+        reject("Tuonti peruutettiin.");
+        return;
+      }
+
+      const selectedFile = result.filePaths[0];
+      const targetDbPath = db.filename;
+
+      if (!targetDbPath) {
+        reject("Tietokannan polkua ei löytynyt.");
+        return;
+      }
+
+      db.close((closeErr) => {
+        if (closeErr) {
+          reject("Tietokannan sulkeminen epäonnistui: " + closeErr.message);
+          return;
+        }
+
+        fs.copyFile(selectedFile, targetDbPath, (copyErr) => {
+          if (copyErr) {
+            reject("Tietokannan tuonti epäonnistui: " + copyErr.message);
+            return;
+          }
+
+          resolve({
+            message: "Tietokanta tuotu onnistuneesti. Ohjelma suljetaan, jotta muutokset tulevat voimaan."
+          });
+        });
+      });
+    } catch (error) {
+      reject("Tietokannan tuonti epäonnistui: " + error.message);
+    }
+  });
+});
+
+ipcMain.handle("export-customers-csv", async () => {
+  return new Promise((resolve, reject) => {
+    db.all("SELECT * FROM customers ORDER BY name ASC", [], async (err, rows) => {
+      if (err) {
+        reject("Asiakkaiden haku epäonnistui: " + err.message);
+        return;
+      }
+
+      try {
+        const result = await dialog.showSaveDialog({
+          title: "Vie asiakkaat CSV-tiedostoon",
+          defaultPath: "asiakkaat.csv",
+          filters: [{ name: "CSV", extensions: ["csv"] }]
+        });
+
+        if (result.canceled || !result.filePath) {
+          reject("Vienti peruutettiin.");
+          return;
+        }
+
+        const header = [
+          "id",
+          "name",
+          "businessId",
+          "address",
+          "postalCode",
+          "city",
+          "email",
+          "phone"
+        ];
+
+        const escapeCsvValue = (value) => {
+          const str = String(value ?? "");
+          return `"${str.replace(/"/g, '""')}"`;
+        };
+
+        const csvLines = [
+          header.join(";"),
+          ...rows.map((row) =>
+            [
+              row.id,
+              row.name,
+              row.businessId,
+              row.address,
+              row.postalCode,
+              row.city,
+              row.email,
+              row.phone
+            ]
+              .map(escapeCsvValue)
+              .join(";")
+          )
+        ];
+
+        fs.writeFile(result.filePath, csvLines.join("\n"), "utf8", (writeErr) => {
+          if (writeErr) {
+            reject("CSV-vienti epäonnistui: " + writeErr.message);
+          } else {
+            resolve({ message: `Asiakkaat vietiin: ${result.filePath}` });
+          }
+        });
+      } catch (error) {
+        reject("CSV-vienti epäonnistui: " + error.message);
+      }
+    });
+  });
+});
+
+ipcMain.handle("export-invoices-csv", async () => {
+  return new Promise((resolve, reject) => {
+    const sql = `
+      SELECT
+        invoices.id,
+        invoices.invoiceNumber,
+        invoices.date,
+        invoices.dueDate,
+        invoices.referenceNumber,
+        invoices.total,
+        invoices.status,
+        customers.name AS customerName,
+        customers.businessId,
+        customers.email,
+        customers.phone
+      FROM invoices
+      LEFT JOIN customers ON invoices.customerId = customers.id
+      ORDER BY invoices.id DESC
+    `;
+
+    db.all(sql, [], async (err, rows) => {
+      if (err) {
+        reject("Laskujen haku epäonnistui: " + err.message);
+        return;
+      }
+
+      try {
+        const result = await dialog.showSaveDialog({
+          title: "Vie laskut CSV-tiedostoon",
+          defaultPath: "laskut.csv",
+          filters: [{ name: "CSV Files", extensions: ["csv"] }]
+        });
+
+        if (result.canceled || !result.filePath) {
+          reject("CSV-vienti peruutettiin.");
+          return;
+        }
+
+        const header = [
+          "ID",
+          "Laskunumero",
+          "Päiväys",
+          "Eräpäivä",
+          "Viitenumero",
+          "Summa",
+          "Tila",
+          "Asiakas",
+          "Y-tunnus",
+          "Sähköposti",
+          "Puhelin"
+        ];
+
+        const csvRows = rows.map((row) => [
+          row.id,
+          row.invoiceNumber || "",
+          row.date || "",
+          row.dueDate || "",
+          row.referenceNumber || "",
+          row.total ?? "",
+          row.status || "",
+          row.customerName || "",
+          row.businessId || "",
+          row.email || "",
+          row.phone || ""
+        ]);
+
+        const escapeCsvValue = (value) => {
+          const stringValue = String(value ?? "");
+          return `"${stringValue.replace(/"/g, '""')}"`;
+        };
+
+        const csvContent = [
+          header.map(escapeCsvValue).join(";"),
+          ...csvRows.map((row) => row.map(escapeCsvValue).join(";"))
+        ].join("\n");
+
+        fs.writeFile(result.filePath, "\uFEFF" + csvContent, "utf8", (writeErr) => {
+          if (writeErr) {
+            reject("CSV-tiedoston tallennus epäonnistui: " + writeErr.message);
+            return;
+          }
+
+          resolve({
+            message: `Laskut vietiin onnistuneesti: ${result.filePath}`
+          });
+        });
+      } catch (error) {
+        reject("CSV-vienti epäonnistui: " + error.message);
+      }
+    });
+  });
+});
+
+ipcMain.handle("restart-app", async () => {
+  app.relaunch();
+  app.exit(0);
 });
