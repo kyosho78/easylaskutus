@@ -41,6 +41,13 @@ const exportDbBtn = document.getElementById("export-db-btn");
 const importDbBtn = document.getElementById("import-db-btn");
 const exportCustomersBtn = document.getElementById("export-customers-btn");
 const exportInvoicesBtn = document.getElementById("export-invoices-btn");
+const contactSupportBtn = document.getElementById("contactSupportBtn");
+
+const currentYearElement = document.getElementById("currentYear");
+
+if (currentYearElement) {
+  currentYearElement.textContent = new Date().getFullYear();
+}
 
 // =========================
 // NÄKYMIEN VAIHTO
@@ -75,6 +82,16 @@ showSettingsBtn.addEventListener("click", async () => {
   showSection(settingsSection);
   await loadSettings();
 });
+
+if (contactSupportBtn) {
+  contactSupportBtn.addEventListener("click", async () => {
+    try {
+      await ipcRenderer.invoke("contact-support");
+    } catch (error) {
+      alert("Virhe tuen avaamisessa: " + error);
+    }
+  });
+}
 
 // =========================
 // LOGON VALINTA
@@ -186,6 +203,8 @@ async function loadCustomers() {
             <p><strong>Sähköposti:</strong> ${customer.email || "-"}</p>
             <p><strong>Puhelin:</strong> ${customer.phone || "-"}</p>
             <button class="edit-customer-btn" data-id="${customer.id}">Muokkaa</button>
+            <button class="delete-customer-btn" data-id="${customer.id}" data-name="${customer.name}">Poista</button>
+
           </div>
         `
       )
@@ -226,6 +245,28 @@ async function loadCustomers() {
     customerList.innerHTML = `<p>Virhe asiakkaiden haussa: ${error}</p>`;
   }
 }
+
+document.querySelectorAll(".delete-customer-btn").forEach((button) => {
+  button.addEventListener("click", async () => {
+    const customerId = parseInt(button.dataset.id);
+    const customerName = button.dataset.name;
+
+    const confirmed = confirm(
+      `Haluatko varmasti poistaa asiakkaan "${customerName}"?`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const result = await ipcRenderer.invoke("delete-customer", customerId);
+      customerMessage.textContent = result.message;
+      resetCustomerForm();
+      await loadCustomers();
+    } catch (error) {
+      customerMessage.textContent = "Virhe asiakkaan poistossa: " + error;
+    }
+  });
+});
 
 customerForm.addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -467,6 +508,8 @@ async function loadInvoices() {
               <div class="invoice-actions">
                 <button class="pdf-btn" data-id="${invoice.id}">Luo PDF</button>
                 <button class="email-btn" data-id="${invoice.id}">Luo PDF ja lähetä</button>
+                <button class="delete-invoice-btn" data-id="${invoice.id}" data-number="${invoice.invoiceNumber}">Poista</button>
+
               </div>
             </div>
           </div>
@@ -508,6 +551,27 @@ async function loadInvoices() {
         } catch (error) {
           alert("Virhe PDF:n luonnissa tai sähköpostiluonnoksen avauksessa: " + error);
           console.error("Combo-toiminnon virhe:", error);
+        }
+      });
+    });
+
+    document.querySelectorAll(".delete-invoice-btn").forEach((button) => {
+      button.addEventListener("click", async () => {
+        const invoiceId = parseInt(button.dataset.id);
+        const invoiceNumber = button.dataset.number;
+
+        const confirmed = confirm(
+          `Haluatko varmasti poistaa laskun "${invoiceNumber}"?`
+        );
+
+        if (!confirmed) return;
+
+        try {
+          const result = await ipcRenderer.invoke("delete-invoice", invoiceId);
+          invoiceMessage.textContent = result.message;
+          await loadInvoices();
+        } catch (error) {
+          invoiceMessage.textContent = "Virhe laskun poistossa: " + error;
         }
       });
     });

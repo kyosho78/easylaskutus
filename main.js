@@ -2,7 +2,121 @@ const { app, BrowserWindow, ipcMain, dialog, shell } = require("electron");
 const fs = require("fs");
 const PDFDocument = require("pdfkit");
 const bwipjs = require("bwip-js");
+const path = require("path");
 let db;
+
+// ==========================
+// Trial / support popup logic
+// ==========================
+function getTrialFilePath() {
+  return path.join(app.getPath("userData"), "trial.json");
+}
+
+function getOrCreateTrialData() {
+  const trialPath = getTrialFilePath();
+
+  if (!fs.existsSync(trialPath)) {
+    const data = {
+      firstRunDate: new Date().toISOString(),
+      firstPopupShown: false,
+      sixMonthPopupShown: false,
+      lastReminderDate: null
+    };
+
+    fs.writeFileSync(trialPath, JSON.stringify(data, null, 2), "utf8");
+    return data;
+  }
+
+  try {
+    const raw = fs.readFileSync(trialPath, "utf8");
+    const parsed = JSON.parse(raw);
+
+    return {
+      firstRunDate: parsed.firstRunDate || new Date().toISOString(),
+      firstPopupShown: parsed.firstPopupShown || false,
+      sixMonthPopupShown: parsed.sixMonthPopupShown || false,
+      lastReminderDate: parsed.lastReminderDate || null
+    };
+  } catch (error) {
+    const fallbackData = {
+      firstRunDate: new Date().toISOString(),
+      firstPopupShown: false,
+      sixMonthPopupShown: false,
+      lastReminderDate: null
+    };
+
+    fs.writeFileSync(trialPath, JSON.stringify(fallbackData, null, 2), "utf8");
+    return fallbackData;
+  }
+}
+
+function saveTrialData(data) {
+  const trialPath = getTrialFilePath();
+  fs.writeFileSync(trialPath, JSON.stringify(data, null, 2), "utf8");
+}
+
+function shouldShowDonationPopup() {
+  const data = getOrCreateTrialData();
+  const now = new Date();
+  const firstRun = new Date(data.firstRunDate);
+
+  const diffDays = (now - firstRun) / (1000 * 60 * 60 * 24);
+
+  // 1) Show popup on first ever run
+  if (!data.firstPopupShown) {
+    data.firstPopupShown = true;
+    saveTrialData(data);
+    return true;
+  }
+
+  // 2) Before 6 months, do not show popup
+  if (diffDays < 180) {
+    return false;
+  }
+
+  // 3) Show once when 6 months has passed
+  if (!data.sixMonthPopupShown) {
+    data.sixMonthPopupShown = true;
+    data.lastReminderDate = now.toISOString();
+    saveTrialData(data);
+    return true;
+  }
+
+  // 4) After 6 months, show every 30 days
+  if (!data.lastReminderDate) {
+    data.lastReminderDate = now.toISOString();
+    saveTrialData(data);
+    return true;
+  }
+
+  const lastReminder = new Date(data.lastReminderDate);
+  const daysSinceReminder = (now - lastReminder) / (1000 * 60 * 60 * 24);
+
+  if (daysSinceReminder >= 30) {
+    data.lastReminderDate = now.toISOString();
+    saveTrialData(data);
+    return true;
+  }
+
+  return false;
+}
+
+async function showDonationPopup() {
+  const result = await dialog.showMessageBox({
+    type: "info",
+    buttons: ["Buy / Support", "Continue using app"],
+    defaultId: 1,
+    cancelId: 1,
+    title: "Support EasyLaskutus",
+    message: "Support EasyLaskutus",
+    detail:
+      "If the app has been useful, please consider supporting development."
+  });
+
+  if (result.response === 0) {
+    await shell.openExternal("https://buymeacoffee.com/boatnav");
+  }
+}
 
 // ==========================
 // VIIVAKOODI
@@ -60,9 +174,13 @@ function createWindow() {
   win.loadFile("index.html");
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   db = require("./database");
   createWindow();
+
+  if (shouldShowDonationPopup()) {
+    await showDonationPopup();
+  }
 
   app.on("activate", function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -149,6 +267,35 @@ ipcMain.handle("update-customer", async (event, customer) => {
         } else {
           resolve({ message: "Asiakas päivitetty onnistuneesti" });
         }
+      }
+    );
+  });
+});
+
+ipcMain.handle("delete-customer", async (event, customerId) => {
+  return new Promise((resolve, reject) => {
+    // First check if customer has invoices
+    db.get(
+      "SELECT COUNT(*) AS count FROM invoices WHERE customerId = ?",
+      [customerId],
+      (checkErr, row) => {
+        if (checkErr) {
+          reject(checkErr.message);
+          return;
+        }
+
+        if (row.count > 0) {
+          reject("Asiakasta ei voi poistaa, koska siihen liittyy laskuja.");
+          return;
+        }
+
+        db.run("DELETE FROM customers WHERE id = ?", [customerId], function (err) {
+          if (err) {
+            reject(err.message);
+          } else {
+            resolve({ message: "Asiakas poistettu onnistuneesti" });
+          }
+        });
       }
     );
   });
@@ -655,6 +802,25 @@ ipcMain.handle("update-invoice-status", async (event, invoiceId, newStatus) => {
   });
 });
 
+ipcMain.handle("delete-invoice", async (event, invoiceId) => {
+  return new Promise((resolve, reject) => {
+    db.run("DELETE FROM invoice_rows WHERE invoiceId = ?", [invoiceId], function (rowErr) {
+      if (rowErr) {
+        reject(rowErr.message);
+        return;
+      }
+
+      db.run("DELETE FROM invoices WHERE id = ?", [invoiceId], function (invoiceErr) {
+        if (invoiceErr) {
+          reject(invoiceErr.message);
+        } else {
+          resolve({ message: "Lasku poistettu onnistuneesti" });
+        }
+      });
+    });
+  });
+});
+
 // =========================
 // Sähköpostin avaaminen
 // =========================
@@ -1016,6 +1182,25 @@ ipcMain.handle("export-invoices-csv", async () => {
       }
     });
   });
+});
+
+// =========================
+// OTA YHTEYTTÄ KEHITTIJÄÄN
+// =========================
+ipcMain.handle("contact-support", async () => {
+  const subject = "EasyLaskutus support";
+  const body =
+    "Hi,%0D%0A%0D%0AI need help with EasyLaskutus.%0D%0A%0D%0APlease describe the issue here.%0D%0A";
+
+  const mailtoLink =
+    `mailto:walter@wbservice.fi?subject=${encodeURIComponent(subject)}&body=${body}`;
+
+  try {
+    await shell.openExternal(mailtoLink);
+    return { message: "Support email opened." };
+  } catch (error) {
+    throw new Error("Support email could not be opened: " + error.message);
+  }
 });
 
 ipcMain.handle("restart-app", async () => {

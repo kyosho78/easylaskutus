@@ -376,6 +376,7 @@ select {
   background: #09486c;
 }
 
+
 .invoice-actions {
   display: flex;
   gap: 10px;
@@ -473,4 +474,37 @@ select {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.customer-actions,
+.invoice-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.delete-customer-btn,
+.delete-invoice-btn {
+  background-color: #c62828;
+  color: white;
+  border: none;
+  padding: 12px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.delete-customer-btn:hover,
+.delete-invoice-btn:hover {
+  background-color: #a61f1f;
+}
+
+
+.footer-text {
+  margin-top: 30px;
+  text-align: center;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.75);
+  letter-spacing: 0.3px;
 }
