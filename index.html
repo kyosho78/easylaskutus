@@ -181,10 +181,25 @@
               <button type="button" id="import-db-btn">Tuo tietokanta</button>
               <button type="button" id="export-customers-btn">Vie asiakkaat CSV</button>
               <button type="button" id="export-invoices-btn">Vie laskut CSV</button>
-            </div>
-          </div>
-
-          <p id="settingsMessage"></p>
+              </div>
+              </div>
+              
+              <div class="backup-section">
+                <h2>Tuki / lahjoitus</h2>
+                <p>Jos olet tukenut EasyLaskutus-sovellusta, voit syöttää tukikoodin tähän poistaaksesi muistutusikkunat.</p>
+              
+                <div class="field-group">
+                  <label for="donorCodeInput">Tukikoodi</label>
+                  <input type="text" id="donorCodeInput" placeholder="Syötä tukikoodi" />
+                </div>
+              
+                <div class="button-row">
+                  <button type="button" id="activateDonorCodeBtn">Aktivoi tukikoodi</button>
+                  <button type="button" id="disableDonorCodeBtn" class="secondary-btn">Ota muistutukset takaisin käyttöön</button>
+                </div>
+              </div>
+              
+              <p id="settingsMessage"></p>
         </div>
       </section>
     </main>

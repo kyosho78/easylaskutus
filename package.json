@@ -7,8 +7,8 @@
     "start": "electron .",
     "postinstall": "electron-builder install-app-deps",
     "dist:win": "electron-builder --win portable nsis --publish never",
-    "dist:linux": "electron-builder --linux AppImage --publish never",
-    "dist": "electron-builder --win portable nsis --linux AppImage --publish never"
+    "dist:linux": "electron-builder --linux AppImage deb --publish never",
+    "dist": "electron-builder --win portable nsis --linux AppImage deb --publish never"
   },
   "keywords": [],
   "author": "Valter Backström",
@@ -39,9 +39,10 @@
     },
     "linux": {
       "target": [
-        "AppImage"
+        "AppImage",
+        "deb"
       ],
-      "icon": "build/icon.png",
+      "icon": "build/icons",
       "category": "Office"
     }
   },

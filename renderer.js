@@ -43,6 +43,10 @@ const exportCustomersBtn = document.getElementById("export-customers-btn");
 const exportInvoicesBtn = document.getElementById("export-invoices-btn");
 const contactSupportBtn = document.getElementById("contactSupportBtn");
 
+const donorCodeInput = document.getElementById("donorCodeInput");
+const activateDonorCodeBtn = document.getElementById("activateDonorCodeBtn");
+const disableDonorCodeBtn = document.getElementById("disableDonorCodeBtn");
+
 const currentYearElement = document.getElementById("currentYear");
 
 if (currentYearElement) {
@@ -89,6 +93,36 @@ if (contactSupportBtn) {
       await ipcRenderer.invoke("contact-support");
     } catch (error) {
       alert("Virhe tuen avaamisessa: " + error);
+    }
+  });
+}
+
+if (activateDonorCodeBtn) {
+  activateDonorCodeBtn.addEventListener("click", async () => {
+    const code = donorCodeInput.value.trim();
+
+    if (!code) {
+      settingsMessage.textContent = "Syötä tukikoodi ensin.";
+      return;
+    }
+
+    try {
+      const result = await ipcRenderer.invoke("activate-donor-code", code);
+      settingsMessage.textContent = result.message;
+      donorCodeInput.value = "";
+    } catch (error) {
+      settingsMessage.textContent = "Tukikoodin aktivointi epäonnistui: " + error;
+    }
+  });
+}
+
+if (disableDonorCodeBtn) {
+  disableDonorCodeBtn.addEventListener("click", async () => {
+    try {
+      const result = await ipcRenderer.invoke("disable-donor-code");
+      settingsMessage.textContent = result.message;
+    } catch (error) {
+      settingsMessage.textContent = "Muistutusten palautus epäonnistui: " + error;
     }
   });
 }

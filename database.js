@@ -75,16 +75,27 @@ db.serialize(() => {
       website TEXT,
       iban TEXT,
       bic TEXT,
-      logoPath TEXT
+      logoPath TEXT,
+      donationReminderDisabled INTEGER DEFAULT 0
     )
   `);
 
   db.run(`
     INSERT OR IGNORE INTO settings (
-      id, companyName, businessId, address, postalCode, city, email, phone, website, iban, bic, logoPath
+      id, companyName, businessId, address, postalCode, city, email, phone, website, iban, bic, logoPath, donationReminderDisabled
     )
-    VALUES (1, '', '', '', '', '', '', '', '', '', '', '')
+    VALUES (1, '', '', '', '', '', '', '', '', '', '', '', 0)
   `);
+
+  // Add new column automatically for old databases
+  db.run(`
+    ALTER TABLE settings
+    ADD COLUMN donationReminderDisabled INTEGER DEFAULT 0
+  `, (err) => {
+    if (err && !err.message.includes("duplicate column name")) {
+      console.error("Failed to add donationReminderDisabled column:", err.message);
+    }
+  });
 });
 
 module.exports = db;

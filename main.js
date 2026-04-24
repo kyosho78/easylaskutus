@@ -55,7 +55,31 @@ function saveTrialData(data) {
   fs.writeFileSync(trialPath, JSON.stringify(data, null, 2), "utf8");
 }
 
-function shouldShowDonationPopup() {
+function isDonationReminderDisabled() {
+  return new Promise((resolve) => {
+    db.get(
+      "SELECT donationReminderDisabled FROM settings WHERE id = 1",
+      [],
+      (err, row) => {
+        if (err) {
+          console.error("Failed to read donationReminderDisabled:", err.message);
+          resolve(false);
+          return;
+        }
+
+        resolve(Boolean(row?.donationReminderDisabled));
+      }
+    );
+  });
+}
+
+async function shouldShowDonationPopup() {
+  const remindersDisabled = await isDonationReminderDisabled();
+
+  if (remindersDisabled) {
+    return false;
+  }
+
   const data = getOrCreateTrialData();
   const now = new Date();
   const firstRun = new Date(data.firstRunDate);
@@ -101,8 +125,8 @@ function shouldShowDonationPopup() {
   return false;
 }
 
-async function showDonationPopup() {
-  const result = await dialog.showMessageBox({
+async function showDonationPopup(parentWindow) {
+  const result = await dialog.showMessageBox(parentWindow, {
     type: "info",
     buttons: ["Buy / Support", "Continue using app"],
     defaultId: 1,
@@ -172,14 +196,15 @@ function createWindow() {
   });
 
   win.loadFile("index.html");
+  return win;
 }
 
 app.whenReady().then(async () => {
   db = require("./database");
-  createWindow();
+  const win = createWindow();
 
   if (shouldShowDonationPopup()) {
-    await showDonationPopup();
+    await showDonationPopup(win);
   }
 
   app.on("activate", function () {
@@ -898,7 +923,8 @@ ipcMain.handle("save-settings", async (event, settings) => {
           website = ?,
           iban = ?,
           bic = ?,
-          logoPath = ?
+          logoPath = ?,
+          donationReminderDisabled = ?
       WHERE id = 1
     `;
 
@@ -915,13 +941,53 @@ ipcMain.handle("save-settings", async (event, settings) => {
         settings.website,
         settings.iban,
         settings.bic,
-        settings.logoPath
+        settings.logoPath,
+        settings.donationReminderDisabled ? 1 : 0
       ],
       function (err) {
         if (err) {
           reject(err.message);
         } else {
           resolve({ message: "Asetukset tallennettu onnistuneesti" });
+        }
+      }
+    );
+  });
+});
+
+ipcMain.handle("activate-donor-code", async (event, code) => {
+  return new Promise((resolve, reject) => {
+    const validCodes = ["EASYTHANKS2026"]; // change this to your own code
+
+    if (!validCodes.includes(String(code).trim())) {
+      reject("Virheellinen tukikoodi.");
+      return;
+    }
+
+    db.run(
+      "UPDATE settings SET donationReminderDisabled = 1 WHERE id = 1",
+      [],
+      function (err) {
+        if (err) {
+          reject(err.message);
+        } else {
+          resolve({ message: "Kiitos tuesta! Muistutusponnahdusikkuna on poistettu käytöstä." });
+        }
+      }
+    );
+  });
+});
+
+ipcMain.handle("disable-donor-code", async () => {
+  return new Promise((resolve, reject) => {
+    db.run(
+      "UPDATE settings SET donationReminderDisabled = 0 WHERE id = 1",
+      [],
+      function (err) {
+        if (err) {
+          reject(err.message);
+        } else {
+          resolve({ message: "Tukimuistutukset on otettu takaisin käyttöön." });
         }
       }
     );
