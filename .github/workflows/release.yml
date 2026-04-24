@@ -1,0 +1,75 @@
+name: Release EasyLaskutus
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            script: dist:win
+            artifact: windows
+            files: |
+              dist/*.exe
+
+          - os: ubuntu-latest
+            script: dist:linux
+            artifact: linux
+            files: |
+              dist/*.AppImage
+              dist/*.deb
+
+          - os: macos-latest
+            script: dist:mac
+            artifact: macos
+            files: |
+              dist/*.dmg
+              dist/*.zip
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build app
+        run: npm run ${{ matrix.script }}
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: easylaskutus-${{ matrix.artifact }}
+          path: ${{ matrix.files }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-files
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-files/**/*
+          draft: false
+          prerelease: false
