@@ -8,7 +8,8 @@
     "postinstall": "electron-builder install-app-deps",
     "dist:win": "electron-builder --win portable nsis --publish never",
     "dist:linux": "electron-builder --linux AppImage deb --publish never",
-    "dist": "electron-builder --win portable nsis --linux AppImage deb --publish never"
+    "dist:mac": "electron-builder --mac dmg zip --publish never",
+    "dist": "electron-builder --win portable nsis --linux AppImage deb --mac dmg zip --publish never"
   },
   "keywords": [],
   "author": "Valter Backström",
@@ -46,6 +47,14 @@
       "icon": "build/icon.png",
       "category": "Office",
       "maintainer": "Valter Backström <walter@wbservice.fi>"
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "icon": "build/icon.icns",
+      "category": "public.app-category.productivity"
     }
   },
   "devDependencies": {
