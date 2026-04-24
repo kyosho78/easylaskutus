@@ -12,6 +12,7 @@
   },
   "keywords": [],
   "author": "Valter Backström",
+  "email": "walter@wbservice.fi",
   "license": "ISC",
   "type": "commonjs",
   "build": {
@@ -43,7 +44,8 @@
         "deb"
       ],
       "icon": "build/icon.png",
-      "category": "Office"
+      "category": "Office",
+      "maintainer": "Valter Backström <walter@wbservice.fi>"
     }
   },
   "devDependencies": {
