@@ -203,7 +203,7 @@ app.whenReady().then(async () => {
   db = require("./database");
   const win = createWindow();
 
-  if (shouldShowDonationPopup()) {
+  if (await shouldShowDonationPopup()) {
     await showDonationPopup(win);
   }
 

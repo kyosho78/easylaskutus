@@ -111,7 +111,7 @@ if (activateDonorCodeBtn) {
       settingsMessage.textContent = result.message;
       donorCodeInput.value = "";
     } catch (error) {
-      settingsMessage.textContent = "Tukikoodin aktivointi epäonnistui: " + error;
+      settingsMessage.textContent = "Tukikoodin aktivointi epäonnistui: Väärä koodi tai muu virhe.";
     }
   });
 }
@@ -236,9 +236,11 @@ async function loadCustomers() {
             <p><strong>Osoite:</strong> ${customer.address || "-"}, ${customer.postalCode || ""} ${customer.city || ""}</p>
             <p><strong>Sähköposti:</strong> ${customer.email || "-"}</p>
             <p><strong>Puhelin:</strong> ${customer.phone || "-"}</p>
-            <button class="edit-customer-btn" data-id="${customer.id}">Muokkaa</button>
-            <button class="delete-customer-btn" data-id="${customer.id}" data-name="${customer.name}">Poista</button>
 
+            <div class="customer-actions">
+              <button class="edit-customer-btn" data-id="${customer.id}">Muokkaa</button>
+              <button class="delete-customer-btn" data-id="${customer.id}" data-name="${customer.name}">Poista</button>
+            </div>
           </div>
         `
       )
@@ -275,32 +277,33 @@ async function loadCustomers() {
         window.scrollTo({ top: 0, behavior: "smooth" });
       });
     });
+
+    document.querySelectorAll(".delete-customer-btn").forEach((button) => {
+      button.addEventListener("click", async () => {
+        const customerId = parseInt(button.dataset.id);
+        const customerName = button.dataset.name;
+
+        const confirmed = confirm(
+          `Haluatko varmasti poistaa asiakkaan "${customerName}"?`
+        );
+
+        if (!confirmed) return;
+
+        try {
+          const result = await ipcRenderer.invoke("delete-customer", customerId);
+          customerMessage.textContent = result.message;
+          resetCustomerForm();
+          await loadCustomers();
+        } catch (error) {
+          customerMessage.textContent = "Virhe asiakkaan poistossa: " + error;
+        }
+      });
+    });
   } catch (error) {
     customerList.innerHTML = `<p>Virhe asiakkaiden haussa: ${error}</p>`;
   }
 }
 
-document.querySelectorAll(".delete-customer-btn").forEach((button) => {
-  button.addEventListener("click", async () => {
-    const customerId = parseInt(button.dataset.id);
-    const customerName = button.dataset.name;
-
-    const confirmed = confirm(
-      `Haluatko varmasti poistaa asiakkaan "${customerName}"?`
-    );
-
-    if (!confirmed) return;
-
-    try {
-      const result = await ipcRenderer.invoke("delete-customer", customerId);
-      customerMessage.textContent = result.message;
-      resetCustomerForm();
-      await loadCustomers();
-    } catch (error) {
-      customerMessage.textContent = "Virhe asiakkaan poistossa: " + error;
-    }
-  });
-});
 
 customerForm.addEventListener("submit", async (e) => {
   e.preventDefault();

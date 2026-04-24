@@ -508,3 +508,28 @@ select {
   color: rgba(255, 255, 255, 0.75);
   letter-spacing: 0.3px;
 }
+
+.button-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.button-row button {
+  width: 220px;
+  min-height: 48px;
+  padding: 12px 18px;
+  border: none;
+  border-radius: 8px;
+  background: #0d5f8f;
+  color: white;
+  font-weight: bold;
+  font-size: 14px;
+  cursor: pointer;
+  text-align: center;
+}
+
+.button-row button:hover {
+  background: #09486c;
+}

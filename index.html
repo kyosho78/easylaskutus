@@ -173,6 +173,7 @@
             <input type="text" id="settingsBic" placeholder="BIC" />
 
             <button type="submit">Tallenna asetukset</button>
+            <p id="settingsMessage"></p>
           </form>
           <div class="backup-section">
             <h2>Varmuuskopiointi ja vienti</h2>
@@ -186,7 +187,9 @@
               
               <div class="backup-section">
                 <h2>Tuki / lahjoitus</h2>
-                <p>Jos olet tukenut EasyLaskutus-sovellusta, voit syöttää tukikoodin tähän poistaaksesi muistutusikkunat. Lähetä sähköpostia meille niin saat koodin.</p>
+                <p>Jos olet tukenut EasyLaskutus-sovellusta, voit syöttää tukikoodin tähän poistaaksesi muistutusikkunat. Lähetä sähköpostia meille niin saat koodin.
+                  Jos tarvitset yritykselle kuitin niin voit pyytää sitä sähköpostitse.
+                </p>
               
                 <div class="field-group">
                   <label for="donorCodeInput">Tukikoodi</label>
@@ -195,11 +198,8 @@
               
                 <div class="button-row">
                   <button type="button" id="activateDonorCodeBtn">Aktivoi tukikoodi</button>
-                  <button type="button" id="disableDonorCodeBtn" class="secondary-btn">Ota muistutukset takaisin käyttöön</button>
                 </div>
               </div>
-              
-              <p id="settingsMessage"></p>
         </div>
       </section>
     </main>
