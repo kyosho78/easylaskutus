@@ -138,7 +138,7 @@ async function showDonationPopup(parentWindow) {
   });
 
   if (result.response === 0) {
-    await shell.openExternal("https://buymeacoffee.com/boatnav");
+    await shell.openExternal("https://buymeacoffee.com/easylaskutus");
   }
 }
 

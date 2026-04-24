@@ -87,15 +87,22 @@ db.serialize(() => {
     VALUES (1, '', '', '', '', '', '', '', '', '', '', '', 0)
   `);
 
-  // Add new column automatically for old databases
-  db.run(`
-    ALTER TABLE settings
-    ADD COLUMN donationReminderDisabled INTEGER DEFAULT 0
-  `, (err) => {
-    if (err && !err.message.includes("duplicate column name")) {
-      console.error("Failed to add donationReminderDisabled column:", err.message);
+  // Migration for older databases:
+  // if the column already exists, SQLite throws an error, which we ignore
+  db.run(
+    `ALTER TABLE settings ADD COLUMN donationReminderDisabled INTEGER DEFAULT 0`,
+    (err) => {
+      if (err) {
+        if (err.message.includes("duplicate column name")) {
+          console.log("Column donationReminderDisabled already exists.");
+        } else {
+          console.error("Failed to add donationReminderDisabled column:", err.message);
+        }
+      } else {
+        console.log("Column donationReminderDisabled added successfully.");
+      }
     }
-  });
+  );
 });
 
 module.exports = db;
