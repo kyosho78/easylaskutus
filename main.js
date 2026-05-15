@@ -172,14 +172,19 @@ function formatDueDateForBarcode(dateStr) {
 }
 
 function createFinnishBarcodeString({ iban, amount, referenceNumber, dueDate }) {
-  const ibanDigits = onlyDigits(iban);
+  const ibanClean = String(iban || "").replace(/\s/g, "").toUpperCase();
+  const ibanDigits = ibanClean.replace(/^FI/, "");
+
   const amountPart = formatAmountForBarcode(amount);
   const referencePart = formatReferenceForBarcode(referenceNumber);
   const dueDatePart = formatDueDateForBarcode(dueDate);
 
-  // Ensimmäinen numero kertoo version.
-  // Tässä käytetään versiota 5.
-  return `5${ibanDigits}${amountPart}000${referencePart}${dueDatePart}`;
+  const barcodeString = `4${ibanDigits}${amountPart}000${referencePart}${dueDatePart}`;
+
+  console.log("BANK BARCODE:", barcodeString);
+  console.log("BANK BARCODE LENGTH:", barcodeString.length);
+
+  return barcodeString;
 }
 
 // ===================
@@ -724,12 +729,13 @@ ipcMain.handle("generate-invoice-pdf", async (event, invoiceId) => {
               dueDate: invoice.dueDate
             });
 
+
             const pngBuffer = await bwipjs.toBuffer({
-              bcid: "interleaved2of5",
+              bcid: "code128",
               text: barcodeString,
-              scale: 2,
+              scale: 4,
               height: 12,
-              includetext: false
+              includetext: false,
             });
 
             doc
@@ -737,9 +743,9 @@ ipcMain.handle("generate-invoice-pdf", async (event, invoiceId) => {
               .fontSize(12)
               .text("Pankkiviivakoodi", 50, y + 145);
 
-            doc.image(pngBuffer, 50, y + 165, {
-              width: 400,
-              height: 30
+            doc.image(pngBuffer, 150, y + 165, {
+              width: 295,
+              height: 34
             });
           } catch (barcodeError) {
             doc
